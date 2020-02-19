@@ -11,11 +11,39 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.all
+    @all_ratings = {"G" => "true","PG" => "true","PG-13" => "true","R" => "true"}
     
+    session_used_flag = false
     if params.fetch("sort_order", nil) != nil
       @sort_order = params[:sort_order]
+    elsif session.fetch("sort_order", nil) != nil
+      @sort_order = session.fetch("sort_order", nil)
+      session_used_flag = true
     end
+    
+    if params.fetch("ratings", nil) != nil
+      @chosen_ratings = params[:ratings]
+    elsif session.fetch("ratings", nil) != nil
+      @chosen_ratings = session.fetch("ratings", nil)
+      session_used_flag = true
+    else
+      @chosen_ratings = @all_ratings
+    end
+    
+    if session_used_flag
+      flash.keep
+      return redirect_to movies_path(nil, {:sort_order => @sort_order, :ratings => @chosen_ratings})
+    end
+    
+    if params.fetch("sort_order", nil) != nil
+      session[:sort_order] = params.fetch("sort_order", nil)
+    end
+    
+    if params.fetch("ratings", nil) != nil
+      session[:ratings] = params.fetch("ratings", nil)
+    end
+    
+    @movies = Movie.where(:rating => @chosen_ratings.keys)
     
     if @sort_order == "by_release_date"
       @movies = @movies.order("release_date")
